@@ -1,4 +1,9 @@
+import 'dart:io';
+
+import 'package:docx_template/docx_template.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:path_provider/path_provider.dart';
 
 void main() {
   runApp(const MyApp());
@@ -50,17 +55,6 @@ class MyHomePage extends StatefulWidget {
 class _MyHomePageState extends State<MyHomePage> {
   int _counter = 0;
 
-  void _incrementCounter() {
-    setState(() {
-      // This call to setState tells the Flutter framework that something has
-      // changed in this State, which causes it to rerun the build method below
-      // so that the display can reflect the updated values. If we changed
-      // _counter without calling setState(), then the build method would not be
-      // called again, and so nothing would appear to happen.
-      _counter++;
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
     // This method is rerun every time setState is called, for instance as done
@@ -106,10 +100,115 @@ class _MyHomePageState extends State<MyHomePage> {
         ),
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
+        onPressed: _writeDocxFile,
         tooltip: 'Increment',
         child: const Icon(Icons.add),
       ), // This trailing comma makes auto-formatting nicer for build methods.
     );
+  }
+
+  Future<void> _writeDocxFile() async {
+    final data = await rootBundle.load('docs/template.docx');
+    final bytes = data.buffer.asUint8List();
+    final docx = await DocxTemplate.fromBytes(bytes);
+
+    final listNormal = ['Foo', 'Bar', 'Baz'];
+    final listBold = ['ooF', 'raB', 'zaB'];
+
+    final contentList = <Content>[];
+
+    final b = listBold.iterator;
+    for (var n in listNormal) {
+      b.moveNext();
+
+      final c = PlainContent("value")
+        ..add(TextContent("normal", n))
+        ..add(TextContent("bold", b.current));
+      contentList.add(c);
+    }
+
+    Content c = Content();
+    c
+      ..add(TextContent("docname", "Simple docname"))
+      ..add(TextContent("passport", "Passport NE0323 4456673"))
+      ..add(TableContent("table", [
+        RowContent()
+          ..add(TextContent("key1", "Paul"))
+          ..add(TextContent("key2", "Viberg"))
+          ..add(TextContent("key3", "Engineer")),
+        RowContent()
+          ..add(TextContent("key1", "Alex"))
+          ..add(TextContent("key2", "Houser"))
+          ..add(TextContent("key3", "CEO & Founder"))
+          ..add(ListContent("tablelist", [
+            TextContent("value", "Mercedes-Benz C-Class S205"),
+            TextContent("value", "Lexus LX 570")
+          ]))
+      ]))
+      ..add(ListContent("list", [
+        TextContent("value", "Engine")
+          ..add(ListContent("listnested", contentList)),
+        TextContent("value", "Gearbox"),
+        TextContent("value", "Chassis")
+      ]))
+      ..add(ListContent("plainlist", [
+        PlainContent("plainview")
+          ..add(TableContent("table", [
+            RowContent()
+              ..add(TextContent("key1", "Paul"))
+              ..add(TextContent("key2", "Viberg"))
+              ..add(TextContent("key3", "Engineer")),
+            RowContent()
+              ..add(TextContent("key1", "Alex"))
+              ..add(TextContent("key2", "Houser"))
+              ..add(TextContent("key3", "CEO & Founder"))
+              ..add(ListContent("tablelist", [
+                TextContent("value", "Mercedes-Benz C-Class S205"),
+                TextContent("value", "Lexus LX 570")
+              ]))
+          ])),
+        PlainContent("plainview")
+          ..add(TableContent("table", [
+            RowContent()
+              ..add(TextContent("key1", "Nathan"))
+              ..add(TextContent("key2", "Anceaux"))
+              ..add(TextContent("key3", "Music artist"))
+              ..add(ListContent(
+                  "tablelist", [TextContent("value", "Peugeot 508")])),
+            RowContent()
+              ..add(TextContent("key1", "Louis"))
+              ..add(TextContent("key2", "Houplain"))
+              ..add(TextContent("key3", "Music artist"))
+              ..add(ListContent("tablelist", [
+                TextContent("value", "Range Rover Velar"),
+                TextContent("value", "Lada Vesta SW Sport")
+              ]))
+          ])),
+      ]))
+      ..add(ListContent("multilineList", [
+        PlainContent("multilinePlain")
+          ..add(TextContent('multilineText', 'line 1')),
+        PlainContent("multilinePlain")
+          ..add(TextContent('multilineText', 'line 2')),
+        PlainContent("multilinePlain")
+          ..add(TextContent('multilineText', 'line 3'))
+      ]))
+      ..add(TextContent('multilineText2', 'line 1\nline 2\n line 3'));
+
+    final d = await docx.generate(c);
+    Directory? appDocDir = await getExternalStorageDirectory();
+    if (appDocDir == null) {
+      print("cannot get ExternalStorageDirectory");
+      return;
+    }
+    print("appDocDir = ${appDocDir.path}");
+
+    final of = File("${appDocDir.path}/generated.docx");
+    if (d != null) {
+      of.writeAsBytesSync(d);
+      print("writeAsBytesSync done");
+    } else {
+      throw Exception("docx.generate fail");
+    }
   }
 }
