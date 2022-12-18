@@ -112,19 +112,17 @@ class _MyHomePageState extends State<MyHomePage> {
     final bytes = data.buffer.asUint8List();
     final docx = await DocxTemplate.fromBytes(bytes);
 
-    Content c = Content();
-    c
-      ..add(ListContent("multilineList", [
-        PlainContent("multilinePlain")
-          ..add(TextContent('multilineText', 'line 1')),
-        PlainContent("multilinePlain")
-          ..add(TextContent('multilineText', 'line 2')),
-        PlainContent("multilinePlain")
-          ..add(TextContent('multilineText', 'line 3'))
-      ]))
-      ..add(TextContent('multilineText2', 'line 1\nline 2\n line 3'));
+    Content content = Content();
+    content.add(ListContent("multilineList", [
+      PlainContent("multilinePlain")
+        ..add(TextContent('multilineText', 'line 1')),
+      PlainContent("multilinePlain")
+        ..add(TextContent('multilineText', 'line 2')),
+      PlainContent("multilinePlain")
+        ..add(TextContent('multilineText', 'line 3'))
+    ]));
 
-    final d = await docx.generate(c);
+    final d = await docx.generate(content);
     Directory? appDocDir = await getExternalStorageDirectory();
     if (appDocDir == null) {
       print("cannot get ExternalStorageDirectory");
